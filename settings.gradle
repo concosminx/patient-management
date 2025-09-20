@@ -1,0 +1,15 @@
+rootProject.name = 'patient-management'
+
+def subDirs = rootDir.listFiles(new FileFilter() {
+  boolean accept(File file) {
+    if (!file.isDirectory() || 'buildSrc' == file.name) {
+      return false
+    }
+    return new File(file, 'build.gradle').isFile()
+  }
+})
+
+subDirs.each { dir ->
+  logger.lifecycle("include dir name: ${dir.name}")
+  include dir.name
+}
