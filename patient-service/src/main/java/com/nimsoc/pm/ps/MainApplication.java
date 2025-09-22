@@ -1,4 +1,4 @@
-package com.nimsoc.ms.main;
+package com.nimsoc.pm.ps;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
