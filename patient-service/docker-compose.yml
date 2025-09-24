@@ -1,0 +1,56 @@
+services:
+  postgres:
+    container_name: patient-service-db
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=admin_user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data-pg:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - patient-network
+
+  pgadmin:
+    container_name: patient-service-pgadmin
+    image: dpage/pgadmin4:latest
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@local.com
+      - PGADMIN_DEFAULT_PASSWORD=password
+    volumes:
+        - ./data-pgadmin:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    restart: always
+    networks:
+      - patient-network
+
+  patient-service:
+    container_name: patient-service-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/db
+      - SPRING_DATASOURCE_USERNAME=admin_user
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_SQL_INIT_MODE=always
+    depends_on:
+      - postgres
+    restart: always
+    networks:
+      - patient-network
+
+networks:
+  patient-network:
+    external: true
+
+
+#run this to create the docker network
+#docker network create patient-network
