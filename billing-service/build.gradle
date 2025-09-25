@@ -1,0 +1,54 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.6'
+	id 'io.spring.dependency-management' version '1.1.7'
+	id "com.google.protobuf" version "0.9.5"
+}
+
+protobuf {
+	protoc {
+		artifact = "com.google.protobuf:protoc:3.25.5"
+	}
+	plugins {
+		grpc {
+			artifact = 'io.grpc:protoc-gen-grpc-java:1.75.0'
+		}
+	}
+	generateProtoTasks {
+		all()*.plugins {
+			grpc {}
+		}
+	}
+}
+
+group = 'com.nimsoc.ms'
+version = '0.0.1-SNAPSHOT'
+description = 'Billing Service'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+sourceSets.main.java.srcDir new File(buildDir, 'generated/source')
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	implementation 'net.devh:grpc-spring-boot-starter:3.1.0.RELEASE'
+	implementation 'io.grpc:grpc-okhttp:1.75.0'
+	implementation 'io.grpc:grpc-protobuf-lite:1.75.0'
+	implementation 'io.grpc:grpc-stub:1.75.0'
+
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
