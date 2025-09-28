@@ -1,0 +1,167 @@
+version: '3.8'
+
+# Docker Compose file to run Patient Management microservices
+# using pre-built images created by 03-build-and-tag-images.bat
+#
+# Prerequisites:
+# 1. Run 03-build-and-tag-images.bat to build the images
+# 2. Start support services: docker-compose -f 01-docker-compose-support.yml up -d
+# 3. Run this compose: docker-compose -f 04-docker-compose-services.yml up -d
+
+networks:
+  inetwork:
+    external: true
+
+services:
+  # Patient Service
+  patient-service:
+    image: patient-service:latest
+    container_name: patient-service
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      # Database Configuration - Using PostgreSQL from support services
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://patient-service-db:5432/db
+      - SPRING_DATASOURCE_USERNAME=admin_user
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_SQL_INIT_MODE=always
+      
+      # Kafka Configuration
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      
+      # Service Configuration
+      - SERVER_PORT=4000
+      - SPRING_APPLICATION_NAME=patient-service
+      
+    depends_on:
+      - patient-service-db
+      - kafka
+    networks:
+      - inetwork
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.patient-management.service=patient-service"
+      - "com.patient-management.version=v1.0.0"
+
+  # Analytics Service
+  analytics-service:
+    image: analytics-service:latest
+    container_name: analytics-service
+    restart: unless-stopped
+    ports:
+      - "4002:4002"
+      - "9002:9002"
+    environment:
+      # Kafka Configuration
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      
+      # Service Configuration
+      - SERVER_PORT=4002
+      - SPRING_APPLICATION_NAME=analytics-service
+      
+      # Management endpoints
+      - MANAGEMENT_SERVER_PORT=9002
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus
+      
+    depends_on:
+      - kafka
+    networks:
+      - inetwork
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4002/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.patient-management.service=analytics-service"
+      - "com.patient-management.version=v1.0.0"
+
+  # Billing Service
+  billing-service:
+    image: billing-service:latest
+    container_name: billing-service
+    restart: unless-stopped
+    ports:
+      - "4001:4001"
+      - "9001:9001"
+    environment:
+      # Service Configuration
+      - SERVER_PORT=4001
+      - SPRING_APPLICATION_NAME=billing-service
+      
+      # Management endpoints
+      - MANAGEMENT_SERVER_PORT=9001
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus
+      
+    networks:
+      - inetwork
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.patient-management.service=billing-service"
+      - "com.patient-management.version=v1.0.0"
+
+  # API Gateway
+  api-gateway:
+    image: api-gateway:latest
+    container_name: api-gateway
+    restart: unless-stopped
+    ports:
+      - "4004:4004"
+    environment:
+      # Service Configuration
+      - SERVER_PORT=4004
+      - SPRING_APPLICATION_NAME=api-gateway
+      
+      # Gateway Configuration - Route to microservices
+      - SPRING_CLOUD_GATEWAY_ROUTES_0_ID=patient-service
+      - SPRING_CLOUD_GATEWAY_ROUTES_0_URI=http://patient-service:4000
+      - SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0=Path=/patients/**
+      
+      - SPRING_CLOUD_GATEWAY_ROUTES_1_ID=billing-service
+      - SPRING_CLOUD_GATEWAY_ROUTES_1_URI=http://billing-service:4001
+      - SPRING_CLOUD_GATEWAY_ROUTES_1_PREDICATES_0=Path=/billing/**
+      
+      - SPRING_CLOUD_GATEWAY_ROUTES_2_ID=analytics-service
+      - SPRING_CLOUD_GATEWAY_ROUTES_2_URI=http://analytics-service:4002
+      - SPRING_CLOUD_GATEWAY_ROUTES_2_PREDICATES_0=Path=/analytics/**
+      
+    depends_on:
+      patient-service:
+        condition: service_healthy
+      billing-service:
+        condition: service_healthy
+      analytics-service:
+        condition: service_healthy
+    networks:
+      - inetwork
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4004/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      - "com.patient-management.service=api-gateway"
+      - "com.patient-management.version=v1.0.0"
+
+# External services references (these should be running from 01-docker-compose-support.yml)
+  patient-service-db:
+    external: true
+    container_name: patient-service-db
+
+  kafka:
+    external: true
+    container_name: kafka-service

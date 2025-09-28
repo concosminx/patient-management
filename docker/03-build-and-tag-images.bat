@@ -14,7 +14,6 @@ setlocal enabledelayedexpansion
 
 REM Define image tags and versions
 set VERSION=latest
-set REGISTRY_PREFIX=patient-management
 
 REM Color codes for output
 set GREEN=[32m
@@ -24,7 +23,7 @@ set NC=[0m
 
 echo %YELLOW%Building Patient Service...%NC%
 cd ..\patient-service
-docker build -t %REGISTRY_PREFIX%/patient-service:%VERSION% .
+docker build -t patient-service:%VERSION% .
 if !errorlevel! neq 0 (
     echo %RED%ERROR: Failed to build patient-service image%NC%
     exit /b 1
@@ -35,7 +34,7 @@ echo.
 
 echo %YELLOW%Building Analytics Service...%NC%
 cd ..\analytics-service
-docker build -t %REGISTRY_PREFIX%/analytics-service:%VERSION% .
+docker build -t analytics-service:%VERSION% .
 if !errorlevel! neq 0 (
     echo %RED%ERROR: Failed to build analytics-service image%NC%
     exit /b 1
@@ -46,7 +45,7 @@ echo.
 
 echo %YELLOW%Building Billing Service...%NC%
 cd ..\billing-service
-docker build -t %REGISTRY_PREFIX%/billing-service:%VERSION% .
+docker build -t billing-service:%VERSION% .
 if !errorlevel! neq 0 (
     echo %RED%ERROR: Failed to build billing-service image%NC%
     exit /b 1
@@ -57,7 +56,7 @@ echo.
 
 echo %YELLOW%Building API Gateway...%NC%
 cd ..\api-gateway
-docker build -t %REGISTRY_PREFIX%/api-gateway:%VERSION% .
+docker build -t api-gateway:%VERSION% .
 if !errorlevel! neq 0 (
     echo %RED%ERROR: Failed to build api-gateway image%NC%
     exit /b 1
@@ -76,15 +75,15 @@ echo.
 
 REM List all built images
 echo %YELLOW%Built Images:%NC%
-docker images | findstr "%REGISTRY_PREFIX%"
+docker images | findstr "patient-service\|analytics-service\|billing-service\|api-gateway"
 echo.
 
 REM Optional: Tag images with additional tags
 echo %YELLOW%Creating additional tags...%NC%
-docker tag %REGISTRY_PREFIX%/patient-service:%VERSION% %REGISTRY_PREFIX%/patient-service:v1.0.0
-docker tag %REGISTRY_PREFIX%/analytics-service:%VERSION% %REGISTRY_PREFIX%/analytics-service:v1.0.0
-docker tag %REGISTRY_PREFIX%/billing-service:%VERSION% %REGISTRY_PREFIX%/billing-service:v1.0.0
-docker tag %REGISTRY_PREFIX%/api-gateway:%VERSION% %REGISTRY_PREFIX%/api-gateway:v1.0.0
+docker tag patient-service:%VERSION% patient-service:v1.0.0
+docker tag analytics-service:%VERSION% analytics-service:v1.0.0
+docker tag billing-service:%VERSION% billing-service:v1.0.0
+docker tag api-gateway:%VERSION% api-gateway:v1.0.0
 
 echo %GREEN%Additional version tags created (v1.0.0)%NC%
 echo.
@@ -99,8 +98,7 @@ echo ===========================================================================
 echo.
 echo %YELLOW%Next Steps:%NC%
 echo 1. Start support services: docker-compose -f 01-docker-compose-support.yml up -d
-echo 2. Start application services: docker-compose -f 02-docker-compose-pm.yml up -d
-echo 3. Access API Gateway at: http://localhost:4004
+echo 2. Access API Gateway at: http://localhost:4004
 echo.
 
 REM Optional: Show disk usage
