@@ -4,6 +4,8 @@ import com.nimsoc.pm.ps.dto.PatientRequestDTO;
 import com.nimsoc.pm.ps.dto.PatientResponseDTO;
 import com.nimsoc.pm.ps.exception.EmailAlreadyExistsException;
 import com.nimsoc.pm.ps.exception.PatientNotFoundException;
+import com.nimsoc.pm.ps.grpc.BillingServiceGrpcClient;
+import com.nimsoc.pm.ps.kafka.KafkaProducer;
 import com.nimsoc.pm.ps.mapper.PatientMapper;
 import com.nimsoc.pm.ps.model.Patient;
 import com.nimsoc.pm.ps.repository.PatientRepository;
@@ -17,6 +19,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class PatientService {
   private final PatientRepository patientRepository;
+  private final BillingServiceGrpcClient billingServiceGrpcClient;
+  private final KafkaProducer kafkaProducer;
 
   public List<PatientResponseDTO> getAllPatients() {
     List<Patient> patients = patientRepository.findAll();
@@ -29,6 +33,12 @@ public class PatientService {
     }
 
     Patient newPatient = patientRepository.save(PatientMapper.toModel(patientRequestDTO));
+
+//    billingServiceGrpcClient.createBillingAccount(newPatient.getId().toString(),
+//            newPatient.getName(), newPatient.getEmail());
+
+    kafkaProducer.sendEvent(newPatient);
+
     return PatientMapper.toDTO(newPatient);
   }
 

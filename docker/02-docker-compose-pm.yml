@@ -1,0 +1,110 @@
+networks:
+  inetwork:
+    external: true
+
+services:
+  # Patient Service
+  patient-service:
+    build:
+      context: ../patient-service
+      dockerfile: Dockerfile
+    container_name: patient-service
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      # Database Configuration - Using PostgreSQL from support services
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://patient-service-db:5432/db
+      - SPRING_DATASOURCE_USERNAME=admin_user
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_SQL_INIT_MODE=always
+       
+      # Kafka Configuration
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      
+    depends_on:
+      - patient-service-db
+      - kafka
+    networks:
+      - inetwork
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Analytics Service
+  analytics-service:
+    build:
+      context: ../analytics-service
+      dockerfile: Dockerfile
+    container_name: analytics-service
+    restart: unless-stopped
+    ports:
+      - "4002:4002"
+      - "9002:9002"
+    environment:
+      # Kafka Configuration
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    depends_on:
+      - kafka
+    networks:
+      - inetwork
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4002/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Billing Service
+  billing-service:
+    build:
+      context: ../billing-service
+      dockerfile: Dockerfile
+    container_name: billing-service
+    restart: unless-stopped
+    ports:
+      - "4001:4001"
+      - "9001:9001"
+    networks:
+      - inetwork
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ../api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    restart: unless-stopped
+    ports:
+      - "4004:4004"
+    depends_on:
+      - patient-service
+      - billing-service
+      - analytics-service
+    networks:
+      - inetwork
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4004/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# External services references (these should be running from 01-docker-compose-support.yml)
+  patient-service-db:
+    external: true
+    container_name: patient-service-db
+
+  kafka:
+    external: true
+    container_name: kafka-service
