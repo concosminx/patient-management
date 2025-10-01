@@ -1,0 +1,26 @@
+plugins {
+	id 'java'
+}
+
+group = 'com.nimsoc.pm'
+version = '0.0.1-SNAPSHOT'
+description = 'Integration tests'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'software.amazon.awscdk:aws-cdk-lib:2.178.1'
+	implementation 'com.amazonaws:aws-java-sdk:1.12.780'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

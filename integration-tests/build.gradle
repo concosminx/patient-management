@@ -1,0 +1,27 @@
+plugins {
+	id 'java'
+}
+
+group = 'com.nimsoc.pm'
+version = '0.0.1-SNAPSHOT'
+description = 'Integration tests'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	testImplementation 'io.rest-assured:rest-assured:5.3.0'
+	testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
